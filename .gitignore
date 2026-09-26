@@ -1,0 +1,6 @@
+.claude/
+.tmp/
+.env
+*.json.bak
+energy-audit-*.json
+energy-audit-*.csv

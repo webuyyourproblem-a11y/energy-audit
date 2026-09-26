@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Energy Audit">
+<meta name="theme-color" content="#0f1115">
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Energy Audit</title>
+<style>
+:root{
+  --bg:#f5f5f2; --card:#ffffff; --ink:#16181d; --muted:#6b7080; --line:#e3e3de;
+  --green:#1f9d55; --yellow:#d69e00; --red:#d64545; --accent:#2f5bea;
+  --green-bg:#e6f5ec; --yellow-bg:#fdf5dc; --red-bg:#fbe9e9;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f1115; --card:#191c22; --ink:#eceef2; --muted:#9097a6; --line:#2a2e37;
+    --green:#3ccf7c; --yellow:#f2c230; --red:#f06a6a; --accent:#6f8dff;
+    --green-bg:#16301f; --yellow-bg:#332a0c; --red-bg:#3a1a1a;
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);
+  font:16px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif}
+body{padding:env(safe-area-inset-top) 0 calc(72px + env(safe-area-inset-bottom))}
+main{max-width:560px;margin:0 auto;padding:12px 16px}
+h1{font-size:22px;margin:8px 0 12px} h2{font-size:18px;margin:22px 0 8px} h3{font-size:15px;margin:14px 0 6px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin:10px 0}
+.muted{color:var(--muted);font-size:14px}
+button{font:inherit;border:0;border-radius:12px;padding:12px 16px;background:var(--line);color:var(--ink);cursor:pointer}
+button.primary{background:var(--accent);color:#fff;font-weight:600}
+button.big{width:100%;padding:16px;font-size:18px}
+button:disabled{opacity:.45}
+input,select,textarea{font:inherit;width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{padding:10px 14px;border-radius:999px;background:var(--bg);border:1px solid var(--line);flex:1;min-width:56px;text-align:center}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.ring-wrap{position:relative;width:240px;height:240px;margin:8px auto}
+.ring-wrap svg{transform:rotate(-90deg)}
+.ring-time{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring-time b{font-size:52px;font-variant-numeric:tabular-nums;letter-spacing:-1px}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);
+  display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav button{flex:1;background:none;border-radius:0;padding:10px 0 12px;font-size:12px;color:var(--muted)}
+nav button span{display:block;font-size:20px}
+nav button.on{color:var(--accent);font-weight:600}
+.view{display:none}.view.on{display:block}
+.light{display:flex;align-items:center;gap:8px;font-weight:700}
+.dot{width:14px;height:14px;border-radius:50%;display:inline-block;flex:none}
+.g{background:var(--green)}.y{background:var(--yellow)}.r{background:var(--red)}
+.list-g{background:var(--green-bg)}.list-y{background:var(--yellow-bg)}.list-r{background:var(--red-bg)}
+.item{padding:10px 0;border-top:1px solid var(--line)}.item:first-child{border-top:0}
+.item .t{font-weight:600}
+.advice{font-size:14px;margin-top:6px}
+.advice li{margin:3px 0}
+.bar{height:10px;border-radius:5px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{padding:6px 4px;border-top:1px solid var(--line);text-align:left}
+th{color:var(--muted);font-weight:500;border-top:0}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;z-index:10}
+.modal.on{display:flex}
+.sheet{background:var(--card);width:100%;max-width:560px;margin:0 auto;border-radius:20px 20px 0 0;
+  padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:92vh;overflow:auto}
+.energy-btn{display:flex;align-items:center;gap:10px;width:100%;margin:6px 0;padding:14px;font-size:17px;text-align:left;border:2px solid transparent}
+.energy-btn.on{border-color:var(--ink)}
+.e-up{background:var(--green-bg)}.e-neutral{background:var(--yellow-bg)}.e-down{background:var(--red-bg)}
+.pill{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--bg);border:1px solid var(--line);color:var(--muted)}
+.banner{background:var(--yellow-bg);border-radius:12px;padding:10px 12px;font-size:14px;margin:8px 0}
+.small-btn{padding:6px 10px;font-size:13px;border-radius:8px}
+</style>
+</head>
+<body>
+<main>
+
+<!-- ============ TIMER ============ -->
+<section id="v-timer" class="view on">
+  <h1>Energy Audit</h1>
+  <div class="card">
+    <label for="task">What are you working on?</label>
+    <input id="task" list="taskList" placeholder="e.g. Answer emails" autocomplete="off">
+    <datalist id="taskList"></datalist>
+    <label for="cat">Category</label>
+    <select id="cat"></select>
+    <label>Sprint length</label>
+    <div class="chips" id="lenChips"></div>
+  </div>
+
+  <div class="ring-wrap">
+    <svg width="240" height="240" viewBox="0 0 240 240">
+      <circle cx="120" cy="120" r="108" fill="none" stroke="var(--line)" stroke-width="14"/>
+      <circle id="ring" cx="120" cy="120" r="108" fill="none" stroke="var(--accent)" stroke-width="14"
+        stroke-linecap="round" stroke-dasharray="678.58" stroke-dashoffset="0"/>
+    </svg>
+    <div class="ring-time"><b id="clock">15:00</b><span class="muted" id="clockSub">Ready</span></div>
+  </div>
+
+  <div class="row">
+    <button id="btnStart" class="primary big">Start</button>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <button id="btnPause" disabled>Pause</button>
+    <button id="btnDone" disabled>Finish now</button>
+    <button id="btnCancel" disabled>Cancel</button>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <label style="display:flex;align-items:center;gap:10px;margin:0;color:var(--ink);font-size:15px">
+      <input type="checkbox" id="optAuto" style="width:auto"> Auto-start the next sprint after check-in
+    </label>
+    <label style="display:flex;align-items:center;gap:10px;margin:10px 0 0;color:var(--ink);font-size:15px">
+      <input type="checkbox" id="optWake" style="width:auto"> Keep screen awake while timing
+    </label>
+    <button id="btnNotif" class="small-btn" style="margin-top:10px">Enable notifications</button>
+    <p class="muted" style="margin:8px 0 0">iPhone tip: the alert sounds only while the app is open. Leave this screen on
+      (use “Keep screen awake”). The timer stays accurate if you leave, and the check-in pops up as soon as you come back.</p>
+  </div>
+  <div class="card">
+    <div class="row" style="align-items:center">
+      <div><b>Today</b> <span class="muted" id="todaySum"></span></div>
+      <button class="small-btn" id="btnManual" style="flex:none">+ Log a missed block</button>
+    </div>
+    <div id="todayList"></div>
+  </div>
+</section>
+
+<!-- ============ REPORT ============ -->
+<section id="v-report" class="view">
+  <h1>Your Energy Report</h1>
+  <div id="report"></div>
+</section>
+
+<!-- ============ HISTORY ============ -->
+<section id="v-history" class="view">
+  <h1>History</h1>
+  <div id="history"></div>
+</section>
+
+<!-- ============ SETTINGS ============ -->
+<section id="v-settings" class="view">
+  <h1>Settings</h1>
+  <div class="card">
+    <h3 style="margin-top:0">Categories</h3>
+    <p class="muted">One per line. Used to find your best sprint length and time of day for each kind of work.</p>
+    <textarea id="catEdit" rows="8"></textarea>
+    <button id="btnSaveCats" class="primary" style="margin-top:8px">Save categories</button>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">Backup</h3>
+    <p class="muted">Your data lives only on this phone, in this browser. Export a backup now and then.</p>
+    <div class="row"><button id="btnExport">Export JSON</button><button id="btnCsv">Export CSV</button></div>
+    <label for="importFile">Import a backup (replaces current data)</label>
+    <input type="file" id="importFile" accept="application/json,.json">
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">Preview the report</h3>
+    <p class="muted">Load a week of sample data to see what the report looks like. Remove it before real use.</p>
+    <div class="row"><button id="btnSample">Load sample data</button><button id="btnUnsample">Remove sample data</button></div>
+  </div>
+  <div class="card">
+    <button id="btnWipe" style="background:var(--red);color:#fff;width:100%">Erase all data</button>
+  </div>
+</section>
+</main>
+
+<nav>
+  <button data-v="timer" class="on"><span>⏱️</span>Timer</button>
+  <button data-v="report"><span>📊</span>Report</button>
+  <button data-v="history"><span>🗂️</span>History</button>
+  <button data-v="settings"><span>⚙️</span>Settings</button>
+</nav>
+
+<!-- ============ CHECK-IN SHEET ============ -->
+<div class="modal" id="checkin">
+  <div class="sheet">
+    <h2 style="margin-top:0" id="ciTitle">⏰ Time's up! Check in</h2>
+    <label for="ciTask">What did you actually do?</label>
+    <input id="ciTask" list="taskList">
+    <div class="row">
+      <div><label for="ciCat">Category</label><select id="ciCat"></select></div>
+      <div id="ciWhenWrap" style="display:none"><label for="ciWhen">Started at</label><input type="datetime-local" id="ciWhen"></div>
+    </div>
+    <div id="ciLenWrap" style="display:none"><label>Length</label><div class="chips" id="ciLenChips"></div></div>
+    <label>Did this task…</label>
+    <button class="energy-btn e-up" data-e="up"><span class="dot g"></span> Give me energy</button>
+    <button class="energy-btn e-neutral" data-e="neutral"><span class="dot y"></span> Neutral</button>
+    <button class="energy-btn e-down" data-e="down"><span class="dot r"></span> Take away energy</button>
+    <label>How focused were you? (1 = scattered, 5 = locked in)</label>
+    <div class="chips" id="focusChips"></div>
+    <label for="ciNote">Note (optional)</label>
+    <input id="ciNote" placeholder="Interruptions, mood, anything useful">
+    <div style="margin-top:14px">
+      <button id="ciNext" class="primary big" disabled>Save &amp; start next sprint</button>
+      <div class="row" style="margin-top:8px">
+        <button id="ciBreak" disabled>Save &amp; take a break</button>
+        <button id="ciSave" disabled>Save</button>
+      </div>
+      <button id="ciDiscard" style="width:100%;margin-top:8px;background:none;color:var(--muted)">Discard this block</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= STATE ================= */
+const LS_KEY = 'energyAudit.v1';
+const DEFAULT_CATS = ['Deep Work','Creative','Sales / Calls','Meetings','Email / Messages','Admin / Paperwork',
+  'Planning','Learning','Errands / Personal','Other'];
+const LENGTHS = [15,30,45,60];
+const E_SCORE = {up:1, neutral:0, down:-1};
+
+let S = load();
+function load(){
+  try{ const d = JSON.parse(localStorage.getItem(LS_KEY)); if(d && Array.isArray(d.entries)) return fill(d); }catch(e){}
+  return fill({});
+}
+function fill(d){
+  return Object.assign({entries:[], cats:DEFAULT_CATS.slice(), len:15, lastCat:DEFAULT_CATS[0],
+    auto:false, wake:true, timer:null, moveToRed:{}}, d);
+}
+function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(S)); }catch(e){ alert('Could not save — storage is full or blocked.'); } }
+
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const keyOf = t => t.trim().toLowerCase().replace(/\s+/g,' ');
+const fmtTime = ms => { const s = Math.max(0, Math.ceil(ms/1000)); return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; };
+const hhmm = ts => new Date(ts).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+
+/* ================= NAV ================= */
+$$('nav button').forEach(b => b.onclick = () => show(b.dataset.v));
+function show(v){
+  $$('nav button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  $$('.view').forEach(s => s.classList.toggle('on', s.id === 'v-' + v));
+  if(v === 'report') renderReport();
+  if(v === 'history') renderHistory();
+  if(v === 'settings') $('#catEdit').value = S.cats.join('\n');
+  window.scrollTo(0,0);
+}
+
+/* ================= FORM SETUP ================= */
+function fillCats(sel, val){
+  sel.innerHTML = S.cats.map(c => `<option${c===val?' selected':''}>${esc(c)}</option>`).join('');
+}
+function chips(el, values, current, fmt, onPick){
+  el.innerHTML = values.map(v => `<button class="chip${v===current?' on':''}" data-v="${v}">${fmt(v)}</button>`).join('');
+  el.querySelectorAll('.chip').forEach(c => c.onclick = () => {
+    el.querySelectorAll('.chip').forEach(x => x.classList.remove('on')); c.classList.add('on'); onPick(+c.dataset.v);
+  });
+}
+function lenLabel(m){ return m === 60 ? '1 hr' : m + 'm'; }
+function refreshTaskList(){
+  const seen = new Map();
+  [...S.entries].reverse().forEach(e => { if(!seen.has(keyOf(e.task))) seen.set(keyOf(e.task), e.task); });
+  $('#taskList').innerHTML = [...seen.values()].slice(0,60).map(t => `<option value="${esc(t)}">`).join('');
+}
+// Remember a task's usual category
+$('#task').addEventListener('change', () => {
+  const k = keyOf($('#task').value);
+  const last = [...S.entries].reverse().find(e => keyOf(e.task) === k);
+  if(last && S.cats.includes(last.cat)) $('#cat').value = last.cat;
+});
+function setupForm(){
+  fillCats($('#cat'), S.lastCat);
+  chips($('#lenChips'), LENGTHS, S.len, lenLabel, v => { S.len = v; save(); if(!S.timer) drawIdle(); });
+  $('#optAuto').checked = S.auto; $('#optWake').checked = S.wake;
+  refreshTaskList();
+}
+$('#optAuto').onchange = e => { S.auto = e.target.checked; save(); };
+$('#optWake').onchange = e => { S.wake = e.target.checked; save(); S.wake && S.timer?.running ? wakeOn() : wakeOff(); };
+
+/* ================= AUDIO / NOTIFY / WAKE ================= */
+let actx = null;
+function unlockAudio(){
+  try{ actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if(actx.state === 'suspended') actx.resume(); }catch(e){}
+}
+function chime(){
+  if(!actx) return;
+  const now = actx.currentTime;
+  for(let r=0;r<3;r++) [0,0.18,0.36].forEach((d,i) => {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type='sine'; o.frequency.value = [880,1175,1568][i];
+    const t = now + r*1.2 + d;
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.4,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+0.35);
+    o.connect(g).connect(actx.destination); o.start(t); o.stop(t+0.4);
+  });
+}
+function notify(title, body){
+  if(!('Notification' in window) || Notification.permission !== 'granted') return;
+  navigator.serviceWorker?.ready.then(r => r.showNotification(title, {body, tag:'energy-audit'}))
+    .catch(() => { try{ new Notification(title, {body}); }catch(e){} });
+}
+$('#btnNotif').onclick = async () => {
+  if(!('Notification' in window)){ alert('Notifications need the app added to your Home Screen (Share → Add to Home Screen), iOS 16.4+.'); return; }
+  const p = await Notification.requestPermission();
+  $('#btnNotif').textContent = p === 'granted' ? 'Notifications on ✓' : 'Notifications blocked';
+};
+let wakeLock = null;
+async function wakeOn(){ try{ if('wakeLock' in navigator && !wakeLock) wakeLock = await navigator.wakeLock.request('screen'); wakeLock?.addEventListener('release',()=>wakeLock=null); }catch(e){} }
+function wakeOff(){ try{ wakeLock?.release(); }catch(e){} wakeLock = null; }
+
+/* ================= TIMER ================= */
+const RING = 678.58;
+function drawIdle(){
+  $('#clock').textContent = fmtTime(S.len*60000); $('#clockSub').textContent = 'Ready';
+  $('#ring').style.strokeDashoffset = 0;
+  $('#btnStart').textContent = 'Start'; $('#btnStart').disabled = false;
+  ['#btnPause','#btnDone','#btnCancel'].forEach(b => $(b).disabled = true);
+  $('#btnPause').textContent = 'Pause';
+}
+function start(){
+  unlockAudio();
+  const task = $('#task').value.trim();
+  if(!task){ $('#task').focus(); $('#task').placeholder = 'Type what you are doing first'; return; }
+  S.lastCat = $('#cat').value;
+  S.timer = {running:true, task, cat:S.lastCat, planned:S.len, startedAt:Date.now(),
+    endAt:Date.now() + S.len*60000, pausedMs:0, pauseAt:null};
+  save(); if(S.wake) wakeOn(); tick();
+}
+function pause(){
+  const t = S.timer; if(!t) return;
+  if(t.running){ t.running = false; t.pauseAt = Date.now(); $('#btnPause').textContent = 'Resume'; wakeOff(); }
+  else { const d = Date.now() - t.pauseAt; t.endAt += d; t.pausedMs += d; t.pauseAt = null; t.running = true;
+    if(d > 10*60000) t.longPause = true; // a real rest: resets the work streak for break analysis
+    $('#btnPause').textContent = 'Pause'; unlockAudio(); if(S.wake) wakeOn(); }
+  save(); tick();
+}
+function cancel(){ if(confirm('Cancel this sprint without logging it?')){ S.timer = null; save(); wakeOff(); drawIdle(); } }
+function finishNow(){ if(S.timer) complete(true); }
+function tick(){
+  const t = S.timer; if(!t){ return; }
+  const now = t.running ? Date.now() : t.pauseAt;
+  const left = t.endAt - now, total = t.planned*60000;
+  if(t.running && left <= 0){ complete(false); return; }
+  $('#clock').textContent = fmtTime(left);
+  $('#clockSub').textContent = (t.running ? '' : 'Paused · ') + t.task;
+  $('#ring').style.strokeDashoffset = RING * (1 - left/total);
+  $('#btnStart').disabled = true; $('#btnStart').textContent = 'Running…';
+  ['#btnPause','#btnDone','#btnCancel'].forEach(b => $(b).disabled = false);
+  $('#btnPause').textContent = t.running ? 'Pause' : 'Resume';
+}
+function complete(early){
+  const t = S.timer;
+  if(t.pauseAt){ const d = Date.now() - t.pauseAt; t.pausedMs += d; if(d > 10*60000) t.longPause = true; } // finished while paused
+  t.running = false;
+  const end = early ? Date.now() : t.endAt;
+  const actual = Math.max(1, Math.round((end - t.startedAt - t.pausedMs)/60000));
+  pending = {id:uid(), task:t.task, cat:t.cat, start:t.startedAt, end, planned:t.planned, actual, early};
+  if(t.longPause) pending.longPause = true;
+  S.timer = null; S.pending = pending; save(); wakeOff(); drawIdle(); // pending persisted so a reload can't lose the block
+  if(!early){ chime(); notify('⏰ Sprint done', `Check in: did "${t.task}" give or take energy?`); }
+  openCheckin(pending, false);
+}
+setInterval(tick, 250);
+document.addEventListener('visibilitychange', () => { if(!document.hidden){ tick(); if(S.wake && S.timer?.running) wakeOn(); } });
+$('#btnStart').onclick = start; $('#btnPause').onclick = pause; $('#btnCancel').onclick = cancel; $('#btnDone').onclick = finishNow;
+
+/* ================= CHECK-IN ================= */
+let pending = null, ciEnergy = null, ciFocus = null, ciManual = false, ciLen = 15;
+function toLocalInput(ts){ const d = new Date(ts); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0,16); }
+function openCheckin(p, manual){
+  ciManual = manual; ciEnergy = null; ciFocus = null;
+  $('#ciTitle').textContent = manual ? 'Log a missed block' : (p.early ? 'Sprint ended, check in' : "⏰ Time's up! Check in");
+  $('#ciTask').value = p.task; fillCats($('#ciCat'), p.cat); $('#ciNote').value = '';
+  $('#ciWhenWrap').style.display = manual ? '' : 'none'; $('#ciLenWrap').style.display = manual ? '' : 'none';
+  if(manual){ $('#ciWhen').value = toLocalInput(p.start); ciLen = 15; chips($('#ciLenChips'), LENGTHS, 15, lenLabel, v => ciLen = v); }
+  $('#ciNext').style.display = manual ? 'none' : '';
+  $('#ciBreak').style.display = manual ? 'none' : '';
+  $$('.energy-btn').forEach(b => b.classList.remove('on'));
+  chips($('#focusChips'), [1,2,3,4,5], null, v => v, v => { ciFocus = v; validate(); });
+  validate(); $('#checkin').classList.add('on');
+}
+$$('.energy-btn').forEach(b => b.onclick = () => {
+  $$('.energy-btn').forEach(x => x.classList.remove('on')); b.classList.add('on'); ciEnergy = b.dataset.e; validate();
+});
+function validate(){ const ok = ciEnergy && ciFocus && $('#ciTask').value.trim(); ['#ciNext','#ciBreak','#ciSave'].forEach(b => $(b).disabled = !ok); }
+$('#ciTask').oninput = validate;
+function commit(){
+  const e = Object.assign({}, pending, {task:$('#ciTask').value.trim(), cat:$('#ciCat').value, energy:ciEnergy,
+    focus:ciFocus, note:$('#ciNote').value.trim()});
+  if(ciManual){ e.start = new Date($('#ciWhen').value).getTime() || Date.now(); e.planned = e.actual = ciLen; e.end = e.start + ciLen*60000; }
+  delete e.early;
+  S.entries.push(e); S.entries.sort((a,b) => a.start - b.start); S.lastCat = e.cat;
+  if(!ciManual) S.pending = null;
+  save(); $('#checkin').classList.remove('on'); pending = null;
+  $('#task').value = e.task; fillCats($('#cat'), e.cat);
+  refreshTaskList(); renderToday();
+  return e;
+}
+$('#ciSave').onclick = () => { commit(); if(S.auto && !ciManual) start(); };
+$('#ciNext').onclick = () => { commit(); $('#task').select(); start(); };
+$('#ciBreak').onclick = () => { commit(); $('#task').value = ''; alert(breakTip()); };
+$('#ciDiscard').onclick = () => { if(confirm('Discard this block?')){ $('#checkin').classList.remove('on');
+  if(!ciManual){ S.pending = null; save(); } pending = null; } };
+$('#btnManual').onclick = () => {
+  unlockAudio();
+  pending = {id:uid(), task:$('#task').value.trim(), cat:$('#cat').value, start:Date.now() - 15*60000, planned:15, actual:15};
+  openCheckin(pending, true);
+};
+function breakTip(){
+  const a = analyze(); const b = a.breaks;
+  return 'Break time. Stand up, water, daylight, no phone scrolling.\n\n' +
+    (b.everyMin ? `Your data says your focus dips after about ${b.everyMin} minutes of continuous work, so aim to break around then.` :
+     'Keep logging. After a few days the report will show when your focus starts to fade.');
+}
+
+/* ================= TODAY ================= */
+function renderToday(){
+  const d0 = new Date(); d0.setHours(0,0,0,0);
+  const today = S.entries.filter(e => e.start >= d0.getTime());
+  const mins = today.reduce((s,e) => s + e.actual, 0);
+  $('#todaySum').textContent = today.length ? `· ${today.length} blocks · ${Math.floor(mins/60)}h ${mins%60}m` : '';
+  $('#todayList').innerHTML = today.length ? today.slice().reverse().map(entryRow).join('') :
+    '<p class="muted">Nothing logged yet today. Start a sprint above.</p>';
+}
+function entryRow(e){
+  const c = {up:'g', neutral:'y', down:'r'}[e.energy];
+  return `<div class="item"><div class="light" style="font-weight:600"><span class="dot ${c}"></span>${esc(e.task)}</div>
+    <div class="muted">${hhmm(e.start)} · ${e.actual}m · ${esc(e.cat)} · focus ${e.focus}/5${e.note ? ' · ' + esc(e.note) : ''}</div></div>`;
+}
+
+/* ================= HISTORY ================= */
+function renderHistory(){
+  if(!S.entries.length){ $('#history').innerHTML = '<p class="muted">No entries yet.</p>'; return; }
+  const byDay = {};
+  S.entries.forEach(e => { const k = new Date(e.start).toDateString(); (byDay[k] = byDay[k] || []).push(e); });
+  $('#history').innerHTML = Object.keys(byDay).reverse().map(k => {
+    const list = byDay[k];
+    return `<div class="card"><b>${k}</b> <span class="muted">· ${list.length} blocks</span>` +
+      list.slice().reverse().map(e => entryRow(e).replace('</div></div>',
+        `</div><button class="small-btn" data-del="${e.id}" style="margin-top:4px">Delete</button></div>`)).join('') + '</div>';
+  }).join('');
+  $$('[data-del]').forEach(b => b.onclick = () => {
+    if(confirm('Delete this entry?')){ S.entries = S.entries.filter(e => e.id !== b.dataset.del); save(); renderHistory(); renderToday(); }
+  });
+}
+
+/* ================= ANALYSIS ================= */
+const BUCKETS = [
+  {id:'early', label:'Early morning (5–8a)', from:5, to:8},
+  {id:'morning', label:'Morning (8–11a)', from:8, to:11},
+  {id:'midday', label:'Midday (11a–2p)', from:11, to:14},
+  {id:'afternoon', label:'Afternoon (2–5p)', from:14, to:17},
+  {id:'evening', label:'Evening (5–9p)', from:17, to:21},
+  {id:'night', label:'Night (9p–5a)', from:21, to:29},
+];
+function bucketOf(ts){ let h = new Date(ts).getHours(); if(h < 5) h += 24; return BUCKETS.find(b => h >= b.from && h < b.to); }
+const avg = a => a.length ? a.reduce((s,x) => s + x, 0) / a.length : 0;
+// Productivity score: focus (1–5) plus half-weight energy (−1..+1)
+const score = es => avg(es.map(e => e.focus + 0.5*E_SCORE[e.energy]));
+
+function analyze(){
+  const E = S.entries;
+  // 1. Traffic lights by task
+  const tasks = Object.create(null); // no prototype: task names like "constructor" are safe keys
+  E.forEach(e => {
+    const k = keyOf(e.task);
+    const t = tasks[k] = tasks[k] || {key:k, name:e.task, cat:e.cat, n:0, mins:0, sum:0, counts:{up:0,neutral:0,down:0}, cats:Object.create(null)};
+    t.n++; t.mins += e.actual; t.sum += E_SCORE[e.energy]; t.counts[e.energy]++; t.cats[e.cat] = (t.cats[e.cat]||0) + 1;
+  });
+  Object.values(tasks).forEach(t => {
+    t.cat = Object.entries(t.cats).sort((a,b) => b[1]-a[1])[0][0];
+    t.avg = t.sum / t.n;
+    t.light = t.avg > 0.33 ? 'green' : t.avg < -0.33 ? 'red' : 'yellow';
+    if(t.light === 'yellow' && Object.hasOwn(S.moveToRed, t.key)){ t.light = 'red'; t.moved = true; }
+  });
+  const byMins = (a,b) => b.mins - a.mins;
+  const list = l => Object.values(tasks).filter(t => t.light === l).sort(byMins);
+
+  // 2. Time of day
+  const tod = BUCKETS.map(b => { const es = E.filter(e => bucketOf(e.start) === b);
+    return {...b, n:es.length, focus:avg(es.map(e=>e.focus)), energy:avg(es.map(e=>E_SCORE[e.energy])), score:score(es)}; });
+  const todData = tod.filter(b => b.n >= 2);
+  const peak = todData.slice().sort((a,b) => b.score - a.score)[0];
+  const slump = todData.slice().sort((a,b) => a.score - b.score)[0];
+
+  // 3. Per category: best time + best sprint length
+  const cats = Object.create(null);
+  E.forEach(e => (cats[e.cat] = cats[e.cat] || []).push(e));
+  const catInfo = Object.entries(cats).map(([cat, es]) => {
+    const byB = BUCKETS.map(b => { const x = es.filter(e => bucketOf(e.start) === b); return {b, n:x.length, s:score(x)}; }).filter(x => x.n);
+    const bestB = byB.filter(x => x.n >= 2).sort((a,b) => b.s - a.s)[0] || null;
+    // Only sprints run to (near) completion count toward a length; early stops are tracked separately
+    const byL = LENGTHS.map(L => { const x = es.filter(e => e.planned === L && e.actual >= L - 2); return {L, n:x.length, s:score(x), f:avg(x.map(e=>e.focus))}; }).filter(x => x.n);
+    const tried = byL.filter(x => x.n >= 2);
+    const bestL = tried.sort((a,b) => b.s - a.s)[0] || null;
+    const earlyStops = es.filter(e => e.actual < e.planned - 2).length;
+    return {cat, n:es.length, mins:es.reduce((s,e)=>s+e.actual,0), score:score(es), bestB, byL, bestL, triedCount:tried.length, earlyStops};
+  }).sort((a,b) => b.mins - a.mins);
+
+  // 4. Breaks: focus vs minutes into a continuous work streak (gaps ≤ 10 min keep the streak going)
+  const sorted = E.slice().sort((a,b) => a.start - b.start);
+  const into = []; let prevEnd = null, acc = 0;
+  sorted.forEach(e => {
+    if(prevEnd === null || e.start - prevEnd > 10*60000){ acc = 0; }
+    into.push({mins:acc, e}); acc = e.longPause ? 0 : acc + e.actual; prevEnd = e.end; // long pause inside a sprint = rested
+  });
+  const sBuckets = [[0,30],[30,60],[60,90],[90,120],[120,999]].map(([a,b]) => {
+    const x = into.filter(i => i.mins >= a && i.mins < b).map(i => i.e);
+    return {a, b, n:x.length, focus:avg(x.map(e=>e.focus))};
+  });
+  const base = sBuckets[0];
+  let everyMin = null;
+  if(base.n >= 3){
+    const drop = sBuckets.slice(1).find(s => s.n >= 2 && s.focus <= base.focus - 0.5);
+    if(drop) everyMin = drop.a;
+    else if(sBuckets.slice(1).some(s => s.n >= 2)) everyMin = null;
+  }
+  return {tasks, green:list('green'), yellow:list('yellow'), red:list('red'), tod, peak, slump, catInfo,
+    breaks:{sBuckets, everyMin, base}, total:E.length};
+}
+
+/* ================= ADVICE LIBRARY =================
+   Rule-based coaching in the spirit of Dan Martell's "Buy Back Your Time":
+   audit → sort by energy → delegate/automate the drains, keep the green. */
+const ADVICE = {
+  'Deep Work':{green:['Batch it into your peak-focus window, phone in another room.','Pair it with something you love (music, a favorite spot, great coffee).','Set a visible finish line: define “done” before you start the sprint.'],
+    del:['Break it into steps and hand off the prep and research to an assistant or AI.','Keep only the judgment calls. Delegate first drafts.']},
+  'Creative':{green:['Protect it from interruptions. Creative drain usually comes from context switching, not the work.','Change your environment: new location, standing, walking voice memos.','Work from a template so you are not starting from a blank page.'],
+    del:['Hire a freelancer or designer for execution and keep only the creative direction.','Give them a “camcorder” brief: record yourself doing it once, then hand off.']},
+  'Sales / Calls':{green:['Stack calls back to back in one block so you build momentum instead of dreading each one.','Use a short script or checklist so calls feel easy, not draining.','Schedule them in your highest-energy window.'],
+    del:['Hire an appointment setter or SDR for first touches. You take only the closing calls.','Use a booking link and automated follow-up so you do not chase anyone.']},
+  'Meetings':{green:['Require an agenda and outcome, or decline.','Cut the default to 25 or 15 minutes. Walk-and-talk when you can.','Put meetings on 1–2 days a week so the other days stay clear.'],
+    del:['Send a team lead in your place and ask for a 3-bullet summary.','Replace status meetings with async updates (Loom, Slack thread, shared doc).']},
+  'Email / Messages':{green:['Batch email into 2–3 fixed windows a day. Never check it on demand.','Use canned responses for anything you type more than twice.','Race a timer: inbox zero in one sprint.'],
+    del:['Give an assistant inbox access with rules: they handle 80%, flag 20% for you.','Set up filters and auto-labels so noise never hits your main inbox.']},
+  'Admin / Paperwork':{green:['Do it in one weekly power hour with a reward at the end.','Build a checklist so it takes no thinking.','Automate the repeatable parts (recurring payments, templates, e-sign).'],
+    del:['Classic delegate: a virtual assistant or bookkeeper. Record yourself once and hand off the SOP.','Use software (bill pay, receipt capture, scheduling tools) to remove the task entirely.']},
+  'Planning':{green:['Plan in a setting you enjoy: a café, a walk, a whiteboard.','Use a fixed template (weekly review) so it is fast.','Plan tomorrow at the end of today while context is fresh.'],
+    del:['Have an assistant or project manager turn your rough notes into the calendar and task list.','Keep the priorities decision and delegate the scheduling.']},
+  'Learning':{green:['Switch formats: audio on walks, video, or learning by doing.','Only learn what you will use this week (just-in-time, not just-in-case).','Teach it to someone right after. It locks it in and energizes.'],
+    del:['Have someone summarize books and courses into one-pagers for you.','Hire an expert for an hour instead of learning it yourself.']},
+  'Errands / Personal':{green:['Bundle errands into one trip with a podcast.','Put recurring purchases on auto-delivery.'],
+    del:['Delivery services, a house cleaner, a personal assistant or TaskRabbit. Weigh your hourly rate against the cost.','Your “buyback rate”: if someone else can do it for less than about ¼ of your hourly value, buy that time back.']},
+  'Other':{green:['Ask what specifically drains you about it (the task, the timing, or the people), then change that one thing.','Try doing it at a different time of day or in a shorter sprint.'],
+    del:['Write down the steps once (or record your screen), then hand it off.','Ask whether it needs to be done at all. Eliminate it before you delegate it.']},
+};
+function adviceFor(cat){ return ADVICE[cat] || ADVICE.Other; }
+
+/* ================= REPORT ================= */
+function renderReport(){
+  const a = analyze(), R = $('#report');
+  if(!a.total){ R.innerHTML = '<div class="card"><p>No data yet.</p><p class="muted">Log your work in 15-minute blocks for at least 3–5 days. Dan Martell recommends two weeks for a full picture. Tip: Settings → Load sample data to preview this report.</p></div>'; return; }
+  const days = new Set(S.entries.map(e => new Date(e.start).toDateString())).size;
+  let h = '';
+  if(a.total < 30) h += `<div class="banner">Early read: ${a.total} blocks over ${days} day(s). Insights get sharper after about 30 blocks across 3+ days.</div>`;
+
+  const lightCard = (l, cls, dot, title, items, extra) => `
+    <div class="card ${cls}"><div class="light"><span class="dot ${dot}"></span>${title} <span class="pill">${items.length}</span></div>
+    ${items.length ? items.map(extra).join('') : '<p class="muted">None yet.</p>'}</div>`;
+  const meta = t => `<div class="muted">${t.mins}m logged · ${t.n}× · ${esc(t.cat)} · 🟢${t.counts.up} 🟡${t.counts.neutral} 🔴${t.counts.down}</div>`;
+
+  // --- 1. Traffic lights ---
+  h += '<h2>1. Traffic-light lists</h2>';
+  h += lightCard('green','list-g','g','Green light: gives you energy', a.green,
+    t => `<div class="item"><div class="t">${esc(t.name)}</div>${meta(t)}</div>`);
+  h += lightCard('yellow','list-y','y','Yellow light: neutral', a.yellow,
+    t => `<div class="item"><div class="t">${esc(t.name)}</div>${meta(t)}</div>`);
+  h += lightCard('red','list-r','r','Red light: drains you', a.red,
+    t => `<div class="item"><div class="t">${esc(t.name)}${t.moved?' <span class="pill">moved from yellow</span>':''}</div>${meta(t)}</div>`);
+
+  // --- 2. Advice ---
+  h += '<h2>2. Turn yellows green, delegate the reds</h2>';
+  if(a.yellow.length){
+    h += '<div class="card list-y"><b>Make these green</b><p class="muted" style="margin:4px 0 0">If one can\'t be made green, tap “Can\'t be green” and it moves to red with a delegation plan.</p>';
+    h += a.yellow.map(t => `<div class="item"><div class="t">${esc(t.name)}</div>
+      <ul class="advice">${adviceFor(t.cat).green.map(x => `<li>${esc(x)}</li>`).join('')}${timingTip(a, t)}</ul>
+      <button class="small-btn" data-red="${esc(t.key)}">Can't be green → move to red</button></div>`).join('') + '</div>';
+  }
+  if(a.red.length){
+    h += '<div class="card list-r"><b>Delegate, automate or eliminate</b>';
+    h += a.red.map(t => `<div class="item"><div class="t">${esc(t.name)} <span class="muted">(${t.mins}m logged)</span></div>
+      <ul class="advice">${adviceFor(t.cat).del.map(x => `<li>${esc(x)}</li>`).join('')}
+      <li>Start with the camcorder method: next time you do it, record your screen and voice. That recording becomes the training for whoever takes it over.</li></ul>
+      ${t.moved ? `<button class="small-btn" data-unred="${esc(t.key)}">Move back to yellow</button>` : ''}</div>`).join('') + '</div>';
+    const redMins = a.red.reduce((s,t) => s + t.mins, 0);
+    h += `<p class="muted">Delegating your red list frees about <b>${Math.round(redMins/days)} min/day</b> based on what you logged.</p>`;
+  }
+  if(!a.yellow.length && !a.red.length) h += '<p class="muted">No yellows or reds yet.</p>';
+
+  // --- 3. Time of day ---
+  h += '<h2>3. When you work best</h2><div class="card"><table><tr><th>Time</th><th>Blocks</th><th>Avg focus</th><th>Energy</th></tr>';
+  h += a.tod.filter(b => b.n).map(b => `<tr><td>${b.label}${a.peak===b?' ⭐':''}</td><td>${b.n}</td>
+    <td><div class="bar"><i style="width:${b.focus/5*100}%"></i></div>${b.focus.toFixed(1)}</td>
+    <td>${b.energy > 0.2 ? '🟢' : b.energy < -0.2 ? '🔴' : '🟡'}</td></tr>`).join('') + '</table>';
+  if(a.peak) h += `<p><b>Your peak:</b> ${a.peak.label}. Put your hardest, highest-value work here.</p>`;
+  if(a.slump && a.slump !== a.peak) h += `<p><b>Your slump:</b> ${a.slump.label}. Use it for breaks, admin, errands or easy calls.</p>`;
+  h += '</div>';
+
+  h += '<h3>Suggested order of your day</h3><div class="card">' + dayPlan(a) + '</div>';
+
+  // --- 4. Sprint lengths ---
+  h += '<h2>4. Your ideal sprint lengths</h2><div class="card"><table><tr><th>Category</th><th>Best sprint</th><th>Go…</th></tr>';
+  h += a.catInfo.map(c => {
+    let best = '—', go = '<span class="muted">need data</span>';
+    if(c.bestL){ best = lenLabel(c.bestL.L); go = c.bestL.L >= 45 ? 'Longer 💪' : c.bestL.L <= 15 ? 'Short ⚡' : 'Medium'; }
+    const untried = LENGTHS.filter(L => !c.byL.some(x => x.L === L && x.n >= 2));
+    const hint = c.triedCount < 2 && untried.length ? `<div class="muted">Try ${untried.slice(0,2).map(lenLabel).join(' or ')} sprints to compare</div>` : '';
+    const stops = c.earlyStops >= 2 ? `<div class="muted">You ended ${c.earlyStops} of these early. Try shorter sprints.</div>` : '';
+    return `<tr><td>${esc(c.cat)}<div class="muted">${c.n} blocks</div></td><td>${best}${hint}${stops}</td><td>${go}</td></tr>`;
+  }).join('') + '</table></div>';
+
+  // --- Breaks ---
+  const b = a.breaks;
+  h += '<h3>When to take a break</h3><div class="card">';
+  h += '<table><tr><th>Minutes into a work streak</th><th>Blocks</th><th>Avg focus</th></tr>' +
+    b.sBuckets.filter(s => s.n).map(s => `<tr><td>${s.a}–${s.b === 999 ? '+' : s.b}m</td><td>${s.n}</td><td>${s.focus.toFixed(1)}</td></tr>`).join('') + '</table>';
+  if(b.everyMin) h += `<p><b>Break about every ${b.everyMin} minutes.</b> Your focus drops by half a point or more after that. Take 5–10 minutes before you hit the wall, not after.</p>`;
+  else if(b.base.n >= 3) h += '<p>No clear focus drop yet in your streaks. Keep your current rhythm and log a few longer streaks to test it.</p>';
+  else h += '<p class="muted">Need more back-to-back sprints to spot your fatigue point.</p>';
+  if(a.slump && a.slump !== a.peak) h += `<p><b>Best time for a longer break:</b> ${a.slump.label}. That is when your focus is lowest anyway.</p>`;
+  h += '</div>';
+
+  R.innerHTML = h;
+  $$('[data-red]').forEach(x => x.onclick = () => { S.moveToRed[x.dataset.red] = true; save(); renderReport(); });
+  $$('[data-unred]').forEach(x => x.onclick = () => { delete S.moveToRed[x.dataset.unred]; save(); renderReport(); });
+}
+function timingTip(a, t){
+  const c = a.catInfo.find(c => c.cat === t.cat);
+  if(!c || !c.bestB) return '';
+  const cur = S.entries.filter(e => keyOf(e.task) === t.key);
+  const inBest = cur.filter(e => bucketOf(e.start) === c.bestB.b).length;
+  return inBest < cur.length/2 ? `<li>Timing: you do ${esc(t.cat)} best in the <b>${c.bestB.b.label}</b>. Try moving it there.</li>` : '';
+}
+function dayPlan(a){
+  const placed = a.catInfo.filter(c => c.bestB);
+  if(!placed.length) return '<p class="muted">Log each category at least twice in the same time window to get a suggested order.</p>';
+  const slots = {};
+  placed.forEach(c => (slots[c.bestB.b.id] = slots[c.bestB.b.id] || []).push(c));
+  return BUCKETS.filter(b => slots[b.id]).map(b =>
+    `<div class="item"><b>${b.label}</b>${a.slump?.id === b.id ? ' <span class="pill">slump. Keep it light</span>' : ''}${a.peak?.id === b.id ? ' <span class="pill">peak</span>' : ''}
+     <div>${slots[b.id].sort((x,y) => y.bestB.s - x.bestB.s).map(c => `${esc(c.cat)}${c.bestL ? ` in ${lenLabel(c.bestL.L)} sprints` : ''}`).join(' → ')}</div></div>`).join('')
+    + '<p class="muted">Categories you logged less than twice in any window are not placed yet.</p>';
+}
+
+/* ================= SETTINGS ================= */
+$('#btnSaveCats').onclick = () => {
+  const c = $('#catEdit').value.split('\n').map(s => s.trim()).filter(Boolean);
+  if(!c.length) return alert('Keep at least one category.');
+  S.cats = [...new Set(c)]; if(!S.cats.includes(S.lastCat)) S.lastCat = S.cats[0];
+  save(); setupForm(); alert('Saved.');
+};
+function download(name, text, type){
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], {type})); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+const stamp = () => new Date().toISOString().slice(0,10);
+$('#btnExport').onclick = () => download(`energy-audit-${stamp()}.json`, JSON.stringify(S, null, 1), 'application/json');
+$('#btnCsv').onclick = () => {
+  const q = v => `"${String(v ?? '').replace(/"/g,'""')}"`;
+  const rows = [['start','end','task','category','planned_min','actual_min','energy','focus','note']].concat(
+    S.entries.map(e => [new Date(e.start).toISOString(), new Date(e.end).toISOString(), e.task, e.cat, e.planned, e.actual, e.energy, e.focus, e.note]));
+  download(`energy-audit-${stamp()}.csv`, rows.map(r => r.map(q).join(',')).join('\n'), 'text/csv');
+};
+// Rebuild each imported entry from typed fields so a tampered backup can't inject markup or break the math
+function cleanEntry(e){
+  if(!e || typeof e !== 'object') return null;
+  const start = +e.start, planned = +e.planned, actual = +e.actual, focus = Math.round(+e.focus);
+  if(!isFinite(start) || !['up','neutral','down'].includes(e.energy) || !(focus >= 1 && focus <= 5)) return null;
+  const P = LENGTHS.includes(planned) ? planned : 15, A = isFinite(actual) && actual > 0 ? Math.min(Math.round(actual), 600) : P;
+  const out = {id:String(e.id || uid()).slice(0,40), task:String(e.task || 'Untitled').slice(0,120), cat:String(e.cat || 'Other').slice(0,60),
+    start, end:isFinite(+e.end) ? +e.end : start + A*60000, planned:P, actual:A, energy:e.energy, focus, note:String(e.note || '').slice(0,500)};
+  if(e.sample) out.sample = true; if(e.longPause) out.longPause = true;
+  return out;
+}
+$('#importFile').onchange = async ev => {
+  const f = ev.target.files[0]; if(!f) return;
+  try{ const d = JSON.parse(await f.text()); if(!Array.isArray(d.entries)) throw 0;
+    const entries = d.entries.map(cleanEntry).filter(Boolean);
+    if(!confirm(`Replace current data with ${entries.length} entries from the backup?`)) return;
+    const cats = Array.isArray(d.cats) ? d.cats.map(c => String(c).slice(0,60)).filter(Boolean) : [];
+    S = fill({entries, cats:cats.length ? cats : DEFAULT_CATS.slice(), len:LENGTHS.includes(+d.len) ? +d.len : 15,
+      auto:!!d.auto, wake:d.wake !== false,
+      moveToRed:Object.fromEntries(Object.keys(d.moveToRed && typeof d.moveToRed === 'object' ? d.moveToRed : {}).map(k => [String(k), true]))});
+    save(); setupForm(); renderToday(); drawIdle(); alert('Imported.');
+  }catch(e){ alert('That file is not a valid Energy Audit backup.'); }
+  ev.target.value = '';
+};
+$('#btnWipe').onclick = () => { if(confirm('Erase ALL entries? Export a backup first if unsure.') && confirm('Really erase everything?')){
+  S = fill({cats:S.cats}); save(); setupForm(); renderToday(); drawIdle(); } };
+$('#btnUnsample').onclick = () => { const n = S.entries.length; S.entries = S.entries.filter(e => !e.sample); save(); renderToday(); alert(`Removed ${n - S.entries.length} sample entries.`); };
+$('#btnSample').onclick = () => {
+  // Deterministic PRNG so the sample looks the same every time
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const plan = [ // [task, cat, energy bias, preferred length, best hours]
+    ['Client strategy calls','Sales / Calls','up',45,[9,10,11]], ['Writing proposals','Deep Work','up',60,[8,9]],
+    ['Answering emails','Email / Messages','down',15,[13,14,16]], ['Bookkeeping','Admin / Paperwork','down',30,[15,16]],
+    ['Team check-in','Meetings','neutral',30,[11,12]], ['Content creation','Creative','up',45,[9,10]],
+    ['Scheduling','Admin / Paperwork','neutral',15,[14,15]], ['Weekly planning','Planning','neutral',30,[8,17]],
+    ['Returning texts','Email / Messages','neutral',15,[12,18]], ['Errands','Errands / Personal','down',30,[17,18]],
+  ];
+  const out = [], base = new Date(); base.setHours(0,0,0,0);
+  for(let d = 7; d >= 1; d--){
+    let t = new Date(base.getTime() - d*86400000); t.setHours(8,0,0,0);
+    let streak = 0;
+    while(t.getHours() < 18){
+      const hr = t.getHours();
+      const p = plan.filter(p => p[4].some(h => Math.abs(h - hr) <= 1));
+      const [task, cat, bias, L0] = (p.length ? p : plan)[Math.floor(rnd() * (p.length || plan.length))];
+      const L = rnd() < 0.6 ? L0 : LENGTHS[Math.floor(rnd()*4)];
+      const peak = hr >= 8 && hr < 11 ? 1 : hr >= 13 && hr < 15 ? -1.2 : 0;
+      let focus = Math.round(3 + peak + (L === L0 ? 0.6 : -0.4) - (streak > 90 ? 1.2 : 0) + (rnd() - 0.5));
+      focus = Math.min(5, Math.max(1, focus));
+      const energy = rnd() < 0.75 ? bias : ['up','neutral','down'][Math.floor(rnd()*3)];
+      const start = t.getTime();
+      out.push({id:uid(), sample:true, task, cat, start, end:start + L*60000, planned:L, actual:L, energy, focus, note:''});
+      const gap = rnd() < 0.3 ? 15 : 0; streak = gap ? 0 : streak + L;
+      t = new Date(start + (L + gap)*60000);
+    }
+  }
+  S.entries = S.entries.filter(e => !e.sample).concat(out).sort((a,b) => a.start - b.start);
+  save(); refreshTaskList(); renderToday(); alert(`Loaded ${out.length} sample blocks. Open the Report tab.`);
+};
+
+/* ================= BOOT ================= */
+setupForm(); renderToday();
+if(S.timer){ tick(); if(S.timer.running && S.wake) wakeOn(); } else drawIdle();
+if(S.pending){ pending = S.pending; openCheckin(pending, false); } // app was closed mid check-in
+if('Notification' in window && Notification.permission === 'granted') $('#btnNotif').textContent = 'Notifications on ✓';
+if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
