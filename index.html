@@ -118,9 +118,13 @@ th{color:var(--muted);font-weight:500;border-top:0}
     <label style="display:flex;align-items:center;gap:10px;margin:10px 0 0;color:var(--ink);font-size:15px">
       <input type="checkbox" id="optWake" style="width:auto"> Keep screen awake while timing
     </label>
-    <button id="btnNotif" class="small-btn" style="margin-top:10px">Enable notifications</button>
-    <p class="muted" style="margin:8px 0 0">iPhone tip: the alert sounds only while the app is open. Leave this screen on
-      (use “Keep screen awake”). The timer stays accurate if you leave, and the check-in pops up as soon as you come back.</p>
+    <div class="row" style="margin-top:10px">
+      <button id="btnNotif" class="small-btn">Enable notifications</button>
+      <button id="btnTestAlarm" class="small-btn">🔔 Test alarm</button>
+    </div>
+    <p class="muted" style="margin:8px 0 0">iPhone tips: turn the volume up and tap “Test alarm” once. The alarm rings until you tap
+      Stop, or for up to 90 seconds. It sounds only while the app is open, so keep this screen on (“Keep screen awake”).
+      If you leave, the check-in pops up as soon as you come back.</p>
   </div>
   <div class="card">
     <div class="row" style="align-items:center">
@@ -180,6 +184,7 @@ th{color:var(--muted);font-weight:500;border-top:0}
 <!-- ============ CHECK-IN SHEET ============ -->
 <div class="modal" id="checkin">
   <div class="sheet">
+    <button id="alarmBar" class="big" style="display:none;background:var(--red);color:#fff;font-weight:700;margin-bottom:12px">🔕 Stop alarm</button>
     <h2 style="margin-top:0" id="ciTitle">⏰ Time's up! Check in</h2>
     <label for="ciTask">What did you actually do?</label>
     <input id="ciTask" list="taskList">
@@ -278,8 +283,60 @@ $('#optWake').onchange = e => { S.wake = e.target.checked; save(); S.wake && S.t
 
 /* ================= AUDIO / NOTIFY / WAKE ================= */
 let actx = null;
+/* The alarm is a real looping <audio> element, not Web Audio: on iPhone, Web Audio is muted by the
+   silent switch and a suspended AudioContext can't resume outside a tap. An <audio> element that was
+   started once inside a tap (unlockAudio on Start) may be replayed later without one. */
+function makeAlarmUrl(silent){
+  const rate = 22050, beep = 0.16, gap = 0.06, pattern = silent ? [] : [880,1175,1568,1175,1568], rest = silent ? 0.2 : 0.7;
+  const len = Math.round(rate * (pattern.length*(beep+gap) + rest));
+  const buf = new ArrayBuffer(44 + len*2), v = new DataView(buf);
+  const str = (o,s) => [...s].forEach((c,i) => v.setUint8(o+i, c.charCodeAt(0)));
+  str(0,'RIFF'); v.setUint32(4, 36+len*2, true); str(8,'WAVEfmt '); v.setUint32(16,16,true); v.setUint16(20,1,true);
+  v.setUint16(22,1,true); v.setUint32(24,rate,true); v.setUint32(28,rate*2,true); v.setUint16(32,2,true); v.setUint16(34,16,true);
+  str(36,'data'); v.setUint32(40, len*2, true);
+  for(let i=0;i<len;i++){
+    const t = i/rate, slot = Math.floor(t/(beep+gap)), inSlot = t - slot*(beep+gap);
+    let s = 0;
+    if(slot < pattern.length && inSlot < beep){
+      const env = Math.min(1, inSlot/0.005, (beep-inSlot)/0.02); // click-free edges
+      s = Math.sin(2*Math.PI*pattern[slot]*t) * env * 0.9;
+    }
+    v.setInt16(44+i*2, s*32767, true);
+  }
+  return URL.createObjectURL(new Blob([buf], {type:'audio/wav'}));
+}
+// iOS only grants later playback to an element that played UNMUTED inside a tap, so the unlock plays a
+// silent clip on the same element; the alarm swaps the source in later.
+const SILENT_URL = makeAlarmUrl(true), ALARM_URL = makeAlarmUrl(false);
+const alarmEl = new Audio(SILENT_URL);
+alarmEl.preload = 'auto'; alarmEl.setAttribute('playsinline','');
+let alarmUnlocked = false, alarmTimeout = null;
 function unlockAudio(){
-  try{ actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if(actx.state === 'suspended') actx.resume(); }catch(e){}
+  try{ actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if(actx.state !== 'running') actx.resume(); }catch(e){}
+  if(!alarmUnlocked && !alarmRinging()){
+    alarmEl.src = SILENT_URL; alarmEl.loop = false;
+    alarmEl.play().then(() => { alarmUnlocked = true; }).catch(() => {}); // src swap by startAlarm may abort this; harmless
+  }
+}
+const alarmRinging = () => !alarmEl.paused && alarmEl.src === ALARM_URL;
+function startAlarm(){
+  try{ if(navigator.audioSession) navigator.audioSession.type = 'playback'; }catch(e){} // ignore silent switch (iOS 17+)
+  if(alarmEl.src !== ALARM_URL) alarmEl.src = ALARM_URL;
+  alarmEl.loop = true; alarmEl.currentTime = 0;
+  $('#alarmBar').style.display = '';
+  alarmEl.play().then(() => {
+    clearTimeout(alarmTimeout); alarmTimeout = setTimeout(stopAlarm, 90000); // never ring forever
+  }).catch(() => {
+    chime(); // blocked: try Web Audio once, and ask for a tap
+    $('#alarmBar').textContent = '🔔 Time\'s up! Tap to play the alarm';
+    $('#alarmBar').onclick = () => { resetAlarmBar(); startAlarm(); };
+  });
+}
+function resetAlarmBar(){ $('#alarmBar').textContent = '🔕 Stop alarm'; $('#alarmBar').onclick = stopAlarm; }
+function stopAlarm(){
+  clearTimeout(alarmTimeout); alarmEl.pause(); alarmEl.currentTime = 0;
+  try{ if(navigator.audioSession) navigator.audioSession.type = 'auto'; }catch(e){}
+  $('#alarmBar').style.display = 'none'; resetAlarmBar();
 }
 function chime(){
   if(!actx) return;
@@ -292,6 +349,14 @@ function chime(){
     o.connect(g).connect(actx.destination); o.start(t); o.stop(t+0.4);
   });
 }
+$('#alarmBar').onclick = stopAlarm;
+$('#btnTestAlarm').onclick = () => {
+  const b = $('#btnTestAlarm');
+  if(alarmRinging()){ stopAlarm(); b.textContent = '🔔 Test alarm'; return; }
+  unlockAudio(); startAlarm(); b.textContent = '🔕 Stop test';
+  setTimeout(() => { if(!alarmRinging()) b.textContent = '🔔 Test alarm'; }, 400); // blocked or already stopped
+  alarmEl.onpause = () => { b.textContent = '🔔 Test alarm'; };
+};
 function notify(title, body){
   if(!('Notification' in window) || Notification.permission !== 'granted') return;
   navigator.serviceWorker?.ready.then(r => r.showNotification(title, {body, tag:'energy-audit'}))
@@ -355,7 +420,7 @@ function complete(early){
   pending = {id:uid(), task:t.task, cat:t.cat, start:t.startedAt, end, planned:t.planned, actual, early};
   if(t.longPause) pending.longPause = true;
   S.timer = null; S.pending = pending; save(); wakeOff(); drawIdle(); // pending persisted so a reload can't lose the block
-  if(!early){ chime(); notify('⏰ Sprint done', `Check in: did "${t.task}" give or take energy?`); }
+  if(!early){ startAlarm(); notify('⏰ Sprint done', `Check in: did "${t.task}" give or take energy?`); }
   openCheckin(pending, false);
 }
 setInterval(tick, 250);
@@ -377,12 +442,15 @@ function openCheckin(p, manual){
   chips($('#focusChips'), [1,2,3,4,5], null, v => v, v => { ciFocus = v; validate(); });
   validate(); $('#checkin').classList.add('on');
 }
+// Any touch or typing on the check-in sheet silences the alarm
+['pointerdown','input','change'].forEach(ev => $('#checkin').addEventListener(ev, () => { if(alarmRinging()) stopAlarm(); }));
 $$('.energy-btn').forEach(b => b.onclick = () => {
   $$('.energy-btn').forEach(x => x.classList.remove('on')); b.classList.add('on'); ciEnergy = b.dataset.e; validate();
 });
 function validate(){ const ok = ciEnergy && ciFocus && $('#ciTask').value.trim(); ['#ciNext','#ciBreak','#ciSave'].forEach(b => $(b).disabled = !ok); }
 $('#ciTask').oninput = validate;
 function commit(){
+  stopAlarm();
   const e = Object.assign({}, pending, {task:$('#ciTask').value.trim(), cat:$('#ciCat').value, energy:ciEnergy,
     focus:ciFocus, note:$('#ciNote').value.trim()});
   if(ciManual){ e.start = new Date($('#ciWhen').value).getTime() || Date.now(); e.planned = e.actual = ciLen; e.end = e.start + ciLen*60000; }
@@ -397,7 +465,7 @@ function commit(){
 $('#ciSave').onclick = () => { commit(); if(S.auto && !ciManual) start(); };
 $('#ciNext').onclick = () => { commit(); $('#task').select(); start(); };
 $('#ciBreak').onclick = () => { commit(); $('#task').value = ''; alert(breakTip()); };
-$('#ciDiscard').onclick = () => { if(confirm('Discard this block?')){ $('#checkin').classList.remove('on');
+$('#ciDiscard').onclick = () => { stopAlarm(); if(confirm('Discard this block?')){ $('#checkin').classList.remove('on');
   if(!ciManual){ S.pending = null; save(); } pending = null; } };
 $('#btnManual').onclick = () => {
   unlockAudio();

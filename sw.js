@@ -1,5 +1,5 @@
 // Offline cache: network first, fall back to cache so the app opens without signal.
-const CACHE = 'energy-audit-v1';
+const CACHE = 'energy-audit-v2';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon-180.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
